@@ -13,7 +13,10 @@ router.get('/', function(req, res, next) {
 var postResponseMessageRoute = router.route('/addResponseMessage');
 var getAllResponseMessagesRoute = router.route('/getAllResponseMessages');
 var getAllResponseMessagesOnBlockRoute = router.route('/getAllResponseMessagesOnBlock/:blockId');
-var updateTitleRoute = router.route('/updateTitle/:responseMessageId/:titleText');
+var updateTitleRoute = router.route('/updateTitle/:responseMessageId/:indexId/:type/:titleText');
+var updateDescriptionRoute = router.route('/updateDescription/:responseMessageId/:indexId/:descriptionText');
+var updateUrlRoute = router.route('/updateUrl/:responseMessageId/:indexId/:urlText');
+var addGalleryCardRoute = router.route('/addGalleryCard');
 var utility = new UrlUtility(
     {
     });
@@ -28,8 +31,112 @@ mongoose.connect(url, function (err, db) {
         console.log("Successfully Connected");
     }
 });
+addGalleryCardRoute.post(function(req, res){
+    var responseMessageId = req.body.responseMessageId;
+    console.log(responseMessageId);
+    var response = new Response();
+    var obj = req.body.data;
+    console.log(obj);
+    obj.indexId = obj.indexId + responseMessageId;
+    ResponseMessage.findByIdAndUpdate(
+        responseMessageId,
+        {$push: {"data": obj}},
+        {safe: true, upsert: true},
+        function(err, model) {
+            if(err)
+                console.log(err);
+            else{
+                response.message = "Success";
+                                        response.code = 200;
+                                        res.json(response);
+            }
+        }
+    );
+    /*ResponseMessage.findOne({ _id: responseMessageId }
+        ,function (err, responseMessage) {
+            if (err)
+                res.send(err);
+            else {
+                console.log(responseMessage);
+                if(responseMessage != null)
+                {
+                    responseMessage.data.push(req.body.data);
+                    responseMessage.save(function(err){
+                                    if (err) {
+                                        res.send(err);
+                                    }
+                                    else {
+                                        response.message = "Success";
+                                        response.code = 200;
+                                        res.json(response);
+                                    }
+                    });
+                }
+            }
+        });*/
+});
+updateUrlRoute.get(function(req, res){
+    var responseMessageId = req.params.responseMessageId;
+    var indexId = req.params.indexId;
+    var urlText = req.params.urlText;
+    var response = new Response();
+    ResponseMessage.findOne({ _id: responseMessageId }
+        ,function (err, responseMessage) {
+            if (err)
+                res.send(err);
+            else {
+                ResponseMessage.findOneAndUpdate(
+                                {'data.indexId':indexId},
+                                {$set:{
+                                    'data.$.url': urlText
+                                }},
+                                {safe: true, upsert: true},
+                                function(err, model) {
+                                    if(err)
+                                        console.log(err);
+                                    else{
+                                        response.message = "Success";
+                                        response.code = 200;
+                                        res.json(response);
+                                    }
+                                }
+                            );
+            }
+        });
+});
+updateDescriptionRoute.get(function(req, res){
+    var responseMessageId = req.params.responseMessageId;
+    var descriptionText = req.params.descriptionText;
+    var indexId = req.params.indexId;
+    var response = new Response();
+    ResponseMessage.findOne({ _id: responseMessageId }
+        ,function (err, responseMessage) {
+            if (err)
+                res.send(err);
+            else {
+                ResponseMessage.findOneAndUpdate(
+                                {'data.indexId':indexId},
+                                {$set:{
+                                    'data.$.description': descriptionText
+                                }},
+                                {safe: true, upsert: true},
+                                function(err, model) {
+                                    if(err)
+                                        console.log(err);
+                                    else{
+                                        response.message = "Success";
+                                        response.code = 200;
+                                        res.json(response);
+                                    }
+                                }
+                            );
+            }
+        });
+});
 updateTitleRoute.get(function(req, res){
     var responseMessageId = req.params.responseMessageId;
+    var indexId = req.params.indexId;
+    var type = req.params.type;
     var titleText = req.params.titleText;
     var response = new Response();
     ResponseMessage.findOne({ _id: responseMessageId }
@@ -37,19 +144,40 @@ updateTitleRoute.get(function(req, res){
             if (err)
                 res.send(err);
             else {
-                ResponseMessage.update({ _id: responseMessage._doc._id },{'data.text':titleText},{},function(err, user)
+                if(type == 'gallery')
                 {
-                   if(err)
-                   {
-                        res.json(err);
-                   }
-                   else
-                   {
-                        response.message = "Success";
-                        response.code = 200;
-                        res.json(response);
-                   }
-                });
+                    ResponseMessage.findOneAndUpdate(
+                                {'data.indexId':indexId},
+                                {$set:{
+                                    'data.$.text': titleText
+                                }},
+                                {safe: true, upsert: true},
+                                function(err, model) {
+                                    if(err)
+                                        console.log(err);
+                                    else{
+                                        response.message = "Success";
+                                        response.code = 200;
+                                        res.json(response);
+                                    }
+                                }
+                            );
+                }
+                else{
+                    ResponseMessage.update({ _id: responseMessage._doc._id },{'data.text':titleText},{},function(err, user)
+                    {
+                    if(err)
+                    {
+                            res.json(err);
+                    }
+                    else
+                    {
+                            response.message = "Success";
+                            response.code = 200;
+                            res.json(response);
+                    }
+                    });
+                }
             }
         });
 });
@@ -75,6 +203,7 @@ postResponseMessageRoute.post(function(req, res) {
     var responseMessage = new ResponseMessage();
     var response = new Response();
     var date = new Date();
+    console.log(req.body.data);
     // Set the beer properties that came from the POST data
         responseMessage.data = req.body.data;
         responseMessage.type = req.body.type;
@@ -82,18 +211,51 @@ postResponseMessageRoute.post(function(req, res) {
         responseMessage.createdOnUTC = date;
         responseMessage.updatedOnUTC = date;
         responseMessage.isDeleted = false; 
-        console.log(responseMessage);
         // Save the beer and check for errors
         responseMessage.save(function(err) {
             if (err) {
                 res.send(err);
             }
             else {
-                response.data = responseMessage;
-                response.message = "Success: New Created";
-                response.code = 200;
-                res.json(response);
-                console.log('done');
+                if(responseMessage.type == 'gallery')
+                {
+                    ResponseMessage.findOneAndUpdate(
+                        {'_id':responseMessage._id,},
+                        {$set:{
+                            'data.0.indexId': responseMessage.data[0].indexId + responseMessage._id
+                        }},
+                        {safe: true, upsert: true},
+                        function(err, model) {
+                            if(err)
+                                console.log(err);
+                            else{
+                                response.data = responseMessage;
+                                response.message = "Success: New Created";
+                                response.code = 200;
+                                res.json(response);
+                            }
+                        }
+                    );
+                    /*responseMessage.data[0].indexId = responseMessage.data[0].indexId + responseMessage._id;
+                    responseMessage.save(function(err){
+                        if (err) {
+                            res.send(err);
+                        }
+                        else {
+                            response.data = responseMessage;
+                            response.message = "Success: New Created";
+                            response.code = 200;
+                            res.json(response);
+                        }
+                    });*/
+                }
+                else
+                {
+                    response.data = responseMessage;
+                    response.message = "Success: New Created";
+                    response.code = 200;
+                    res.json(response);
+                }
             }
         });
     

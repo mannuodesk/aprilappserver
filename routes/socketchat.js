@@ -32,6 +32,7 @@ io.sockets.on('connection', function(socket) {
     });
 
     socket.on('sendchat', function(data) {
+        console.log(data);
         message.message = data;
         message.save(function(err) {
         if (err) {

@@ -46,11 +46,12 @@ mongoose.connect(url, function (err, db) {
     }
 });
 uploadPictureRoute.post(multipartMiddleware, function (req, res) {
-   console.log(req.body);
-   console.log(req.files.file);
    var response = new Response();
    var extension = "";
    var responseMessageId = req.body.responseMessageId;
+   var type = req.body.type;
+   var indexId = req.body.indexId;
+   var index = indexId.charAt(0);
     if(req.files.file.headers['content-type'] == 'image/jpeg')
     {
         extension = ".jpg";
@@ -72,20 +73,45 @@ uploadPictureRoute.post(multipartMiddleware, function (req, res) {
                     if (err)
                         res.send(err);
                     else {
-                        ResponseMessage.update({ _id: responseMessage._doc._id },{'data.pictureUrl':fullUrl + "/images/" + imageName},{},function(err, user)
+                        if(type == "image")
                         {
-                            if(err)
+                            ResponseMessage.update({ _id: responseMessage._doc._id },{'data.pictureUrl':fullUrl + "/images/" + imageName},{},function(err, user)
                             {
-                                    res.json(err);
-                            }
-                            else
-                            {
-                                    response.data = fullUrl + "/images/" + imageName;
-                                    response.message = "Success";
-                                    response.code = 200;
-                                    res.json(response);
-                            }
-                        });
+                                if(err)
+                                {
+                                        res.json(err);
+                                }
+                                else
+                                {
+                                        response.data = fullUrl + "/images/" + imageName;
+                                        response.message = "Success";
+                                        response.code = 200;
+                                        res.json(response);
+                                }
+                            });
+                        }
+                        else{
+                            var query = 'data.'+index-1+'.pictureUrl';
+                            ResponseMessage.findOneAndUpdate(
+                                {'data.indexId':indexId},
+                                {$set:{
+                                    'data.$.pictureUrl': fullUrl + "/images/" + imageName
+                                }},
+                                {safe: true, upsert: true},
+                                function(err, model) {
+                                    if(err)
+                                        console.log(err);
+                                    else{
+                                        console.log(model);
+                                        response.data = fullUrl + "/images/" + imageName;
+                                        response.message = "Success";
+                                        response.code = 200;
+                                        res.json(response);
+                                    }
+                                }
+                            );
+                            
+                        }
                     }
                 }); 
                

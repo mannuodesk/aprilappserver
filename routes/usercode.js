@@ -29,7 +29,7 @@ router.get('/', function(req, res, next) {
 var generateUserCodeRoute = router.route('/generateUserCode/:email');
 var getAllUserCodeRoute = router.route('/getAllUserCode');
 var checkUserCodeRoute = router.route('/checkUserCode/:email/:code');
-var updatePasswordRoute = router.route('/updatePassword/:email/:password');
+var updatePasswordRoute = router.route('/updatePassword/:email/:password/:code');
 var uploadPictureRoute = router.route('/uploadPicture');
 var utility = new UrlUtility(
     {
@@ -125,6 +125,7 @@ updatePasswordRoute.get(function(req, res){
     var password = req.params.password;
     var response = new Response();
     var code = req.params.code;
+    var date = new Date();
     User.findOne({ email: email })
         .exec(function (err, user) {
             if (err)

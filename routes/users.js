@@ -298,7 +298,7 @@ getLoginRoute.post(function(req, res){
                         }
                         else
                         {
-                            response.data = exuser._doc;
+                            response.data = exuser[0]._doc;
                             response.message = "Success";
                             response.code = 200;
                                             

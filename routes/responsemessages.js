@@ -16,7 +16,9 @@ var getAllResponseMessagesOnBlockRoute = router.route('/getAllResponseMessagesOn
 var updateTitleRoute = router.route('/updateTitle/:responseMessageId/:indexId/:type/:titleText');
 var updateDescriptionRoute = router.route('/updateDescription/:responseMessageId/:indexId/:descriptionText');
 var updateUrlRoute = router.route('/updateUrl/:responseMessageId/:indexId/:urlText');
+var addAddButtonRoute = router.route('/addAddButton');
 var addGalleryCardRoute = router.route('/addGalleryCard');
+var addQuickReplyRoute = router.route('/addQuickReply');
 var utility = new UrlUtility(
     {
     });
@@ -30,6 +32,76 @@ mongoose.connect(url, function (err, db) {
     else {
         console.log("Successfully Connected");
     }
+});
+addQuickReplyRoute.post(function(req, res){
+    var responseMessageId = req.body.responseMessageId;
+    var obj = req.body.data;
+    var type = req.body.type
+    var index = req.body.index;
+    console.log(responseMessageId);
+    var response = new Response();
+    var id = "quickReply" + index + responseMessageId;
+    obj._addButtonId = id;
+    
+        ResponseMessage.findByIdAndUpdate(
+            responseMessageId,
+            {$push: {"data.quickReplyButton": obj}},
+            {safe: true, upsert: true},
+            function(err, model) {
+                if(err)
+                    console.log(err);
+                else{
+                    response.message = "Success";
+                    response.code = 200;
+                    res.json(response);
+                }
+            }
+        );
+    
+});
+addAddButtonRoute.post(function(req, res){
+    var responseMessageId = req.body.responseMessageId;
+    var obj = req.body.data;
+    var type = req.body.type
+    var index = req.body.index;
+    console.log(responseMessageId);
+    var response = new Response();
+    var id = "addbutton" + index + responseMessageId;
+    obj._addButtonId = id;
+    if(type == "text")
+    {
+        ResponseMessage.findByIdAndUpdate(
+            responseMessageId,
+            {$push: {"data.cardAddButton": obj}},
+            {safe: true, upsert: true},
+            function(err, model) {
+                if(err)
+                    console.log(err);
+                else{
+                    response.message = "Success";
+                    response.code = 200;
+                    res.json(response);
+                }
+            }
+        );
+    }
+    else{
+
+        ResponseMessage.update(
+            { "data.indexId": responseMessageId },
+            { "$push": { "data.$.cardAddButton": obj } },
+            function(err,numAffected) {
+                if(err)
+                    console.log(err);
+                else{
+                    response.message = "Success";
+                    response.code = 200;
+                    res.json(response);
+                }
+            }
+        );
+    }
+    
 });
 addGalleryCardRoute.post(function(req, res){
     var responseMessageId = req.body.responseMessageId;
@@ -52,28 +124,6 @@ addGalleryCardRoute.post(function(req, res){
             }
         }
     );
-    /*ResponseMessage.findOne({ _id: responseMessageId }
-        ,function (err, responseMessage) {
-            if (err)
-                res.send(err);
-            else {
-                console.log(responseMessage);
-                if(responseMessage != null)
-                {
-                    responseMessage.data.push(req.body.data);
-                    responseMessage.save(function(err){
-                                    if (err) {
-                                        res.send(err);
-                                    }
-                                    else {
-                                        response.message = "Success";
-                                        response.code = 200;
-                                        res.json(response);
-                                    }
-                    });
-                }
-            }
-        });*/
 });
 updateUrlRoute.get(function(req, res){
     var responseMessageId = req.params.responseMessageId;
